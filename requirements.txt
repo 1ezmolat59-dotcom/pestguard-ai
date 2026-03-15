@@ -1,0 +1,23 @@
+# PestGuard AI — Python Requirements
+# Install with: pip install -r requirements.txt
+
+# ── Core Web Framework ──────────────────────────────────────────────────────
+tornado==6.1          # Async web server (Python 3.8+)
+
+# ── PDF Report Generation ───────────────────────────────────────────────────
+reportlab>=3.6.0      # Professional PDF generation
+
+# ── AI Integration (Optional) ───────────────────────────────────────────────
+# openai>=1.0.0       # Uncomment for GPT-4o AI parsing
+# If no OpenAI key is set, the app runs in demo mode with rule-based parsing
+
+# ── Standard Library (no install needed) ────────────────────────────────────
+# sqlite3     — built-in database
+# json        — built-in JSON handling
+# re          — built-in regex
+# os          — built-in OS utilities
+# urllib      — built-in HTTP (used for OpenAI API calls without SDK)
+# datetime    — built-in date/time
+
+# ── Development / Testing (optional) ────────────────────────────────────────
+# pytest>=7.0.0

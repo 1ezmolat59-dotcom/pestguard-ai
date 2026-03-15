@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PestGuard AI — Compliance Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  :root {
+    --green-dark: #1A3A2A; --green-mid: #2E6B4A; --green-lite: #3A9C6A;
+    --gold: #F4A300; --red: #C0392B; --cream: #F7F5F0;
+  }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: #F0F7F2; }
+  .sidebar { background: var(--green-dark); min-height: 100vh; width: 240px; }
+  .sidebar-logo { color: #3A9C6A; font-size: 1.25rem; font-weight: 700; }
+  .nav-item { color: #AADDBB; padding: 10px 20px; cursor: pointer; border-radius: 6px; margin: 2px 8px; display: flex; align-items: center; gap: 10px; font-size: 14px; transition: all .15s; }
+  .nav-item:hover { background: rgba(58,156,106,0.15); color: #fff; }
+  .nav-item.active { background: rgba(58,156,106,0.25); color: #fff; font-weight: 600; }
+  .card { background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.07); }
+  .stat-card { background: white; border-radius: 10px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+  .badge-compliant { background: #E8F5EE; color: #1A7A3A; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge-warning { background: #FEF3CD; color: #B7640A; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge-violation { background: #FDECEA; color: #C0392B; font-size: 12px; padding: 2px 8px; border-radius: 20px; font-weight: 600; }
+  .badge-pending { background: #F0F0F0; color: #666; font-size: 12px; padding: 2px 8px; border-radius: 20px; }
+  .btn-primary { background: var(--green-lite); color: white; padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: none; transition: opacity .15s; }
+  .btn-primary:hover { opacity: 0.85; }
+  .btn-secondary { background: white; color: var(--green-dark); padding: 8px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; cursor: pointer; border: 1.5px solid #3A9C6A; transition: all .15s; }
+  .btn-secondary:hover { background: #E8F5EE; }
+  .btn-danger { background: #FDECEA; color: #C0392B; padding: 6px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; border: 1px solid #f5c6c6; }
+  .input { border: 1.5px solid #D1E7D8; border-radius: 8px; padding: 8px 12px; font-size: 14px; width: 100%; outline: none; transition: border .15s; }
+  .input:focus { border-color: #3A9C6A; }
+  .section { display: none; }
+  .section.active { display: block; }
+  .toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 12px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; box-shadow: 0 4px 16px rgba(0,0,0,0.15); animation: slideIn .3s ease; }
+  @keyframes slideIn { from { transform: translateX(60px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+  .ai-input { background: var(--green-dark); border: 1.5px solid #3A9C6A; border-radius: 12px; color: white; padding: 14px 16px; font-size: 14px; width: 100%; outline: none; min-height: 80px; resize: vertical; }
+  .ai-input::placeholder { color: #668877; }
+  .compliance-bar { height: 8px; border-radius: 4px; background: #E2EEE8; overflow: hidden; }
+  .compliance-bar-fill { height: 100%; border-radius: 4px; transition: width 1s ease; }
+  table { border-collapse: collapse; width: 100%; }
+  th { background: #1A3A2A; color: white; padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 600; letter-spacing: .5px; }
+  td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #E8EEE8; }
+  tr:hover td { background: #F5FAF7; }
+  .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 1000; align-items: center; justify-content: center; }
+  .modal.open { display: flex; }
+  .modal-box { background: white; border-radius: 14px; width: 95%; max-width: 600px; max-height: 90vh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.2); }
+</style>
+</head>
+<body class="bg-[#F0F7F2] m-0 overflow-x-hidden">
+
+<!-- Login View -->
+<div id="login-view" style="display:none; height: 100vh; flex-direction: column; align-items: center; justify-content: center;">
+  <div class="card p-8" style="width: 100%; max-width: 400px; text-align: center; margin: 0 auto; box-shadow: 0 10px 30px rgba(0,0,0,0.08);">
+    <div style="font-size: 2.5rem; margin-bottom: 16px;">🌿</div>
+    <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700;margin-bottom:8px">PestGuard AI</h1>
+    <p style="color:#668877;font-size:14px;margin-bottom:24px">Select your company to log in.</p>
+    <select id="login-company" class="input mb-4" style="width:100%; font-size: 15px; padding: 10px;"></select>
+    <button class="btn-primary" style="width:100%; padding: 12px; font-size: 15px;" onclick="login()">Access Platform →</button>
+  </div>
+</div>
+
+<!-- App View -->
+<div id="app-view" class="flex w-full" style="display:none; min-height: 100vh;">
+
+<!-- Sidebar -->
+<nav class="sidebar flex-shrink-0 flex flex-col py-6">
+  <div class="px-6 mb-8">
+    <div class="sidebar-logo">🌿 PestGuard AI</div>
+    <div id="nav-company-name" style="color:#668877;font-size:11px;margin-top:2px;">Compliance Platform v1.0</div>
+  </div>
+  <div id="ai-mode-badge" class="mx-4 mb-4 px-3 py-2 rounded-lg text-xs" style="background:rgba(58,156,106,0.15);color:#AADDBB;"></div>
+  <div class="flex-1">
+    <div class="nav-item active" onclick="showSection('dashboard')">📊 Dashboard</div>
+    <div class="nav-item" onclick="showSection('log-entry')">➕ Log Application</div>
+    <div class="nav-item" onclick="showSection('logs')">📋 Application Logs</div>
+    <div class="nav-item" onclick="showSection('technicians')">👷 Technicians</div>
+    <div class="nav-item" onclick="showSection('chemicals')">🧪 Chemical DB</div>
+    <div class="nav-item" onclick="showSection('reports')">📄 Audit Reports</div>
+  </div>
+  <div class="px-4 mt-auto mb-4" style="color:#445544;font-size:11px;line-height:1.5">
+    FIFRA compliant record-keeping<br>
+    EPA database integrated<br>
+    Audit-ready in 30 seconds
+    <button class="btn-secondary mt-4 w-full" style="padding:6px; font-size:12px; background: transparent; color: #AADDBB; border-color: #3A9C6A" onclick="logout()">Log Out</button>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<main class="flex-1 overflow-auto p-6">
+
+  <!-- ═══════════════════════════════════════════════════════ DASHBOARD -->
+  <div id="section-dashboard" class="section active">
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700">Compliance Dashboard</h1>
+        <p style="color:#668877;font-size:14px">Real-time compliance status and alerts</p>
+      </div>
+      <button class="btn-primary" onclick="showSection('log-entry')">+ Log Application</button>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="grid grid-cols-4 gap-4 mb-6" id="stats-row">
+      <div class="stat-card"><div style="color:#668877;font-size:12px;font-weight:600">TOTAL LOGS</div><div id="stat-total" style="font-size:2rem;font-weight:700;color:#1A3A2A">—</div></div>
+      <div class="stat-card"><div style="color:#668877;font-size:12px;font-weight:600">COMPLIANT</div><div id="stat-compliant" style="font-size:2rem;font-weight:700;color:#3A9C6A">—</div></div>
+      <div class="stat-card"><div style="color:#668877;font-size:12px;font-weight:600">WARNINGS</div><div id="stat-warnings" style="font-size:2rem;font-weight:700;color:#F4A300">—</div></div>
+      <div class="stat-card"><div style="color:#668877;font-size:12px;font-weight:600">VIOLATIONS</div><div id="stat-violations" style="font-size:2rem;font-weight:700;color:#C0392B">—</div></div>
+    </div>
+
+    <!-- Compliance Rate Bar + Alerts -->
+    <div class="grid grid-cols-3 gap-4 mb-6">
+      <div class="card p-5 col-span-2">
+        <div class="flex justify-between items-center mb-3">
+          <div style="font-weight:700;color:#1A3A2A">Compliance Rate</div>
+          <div id="comp-rate-pct" style="font-size:1.4rem;font-weight:700;color:#3A9C6A">—%</div>
+        </div>
+        <div class="compliance-bar">
+          <div class="compliance-bar-fill" id="comp-bar" style="width:0%;background:#3A9C6A"></div>
+        </div>
+        <div class="flex justify-between mt-3" style="font-size:12px;color:#668877">
+          <span>🕐 <span id="stat-late">—</span> late entries</span>
+          <span>👷 <span id="stat-techs">—</span> active technicians</span>
+          <span>📅 <span id="stat-this-month">—</span> this month</span>
+        </div>
+      </div>
+      <div class="card p-5">
+        <div style="font-weight:700;color:#1A3A2A;margin-bottom:12px">🔔 License Alerts</div>
+        <div id="alert-list" style="font-size:13px"></div>
+      </div>
+    </div>
+
+    <!-- Recent Logs -->
+    <div class="card">
+      <div class="px-5 py-4 flex justify-between items-center" style="border-bottom:1px solid #E8EEE8">
+        <div style="font-weight:700;color:#1A3A2A">Recent Applications</div>
+        <button class="btn-secondary" onclick="showSection('logs')" style="font-size:12px;padding:5px 12px">View All</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="recent-table">
+          <thead><tr><th>Date</th><th>Pesticide</th><th>Site</th><th>Technician</th><th>Compliance</th></tr></thead>
+          <tbody id="recent-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ LOG ENTRY -->
+  <div id="section-log-entry" class="section">
+    <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700;margin-bottom:4px">Log Chemical Application</h1>
+    <p style="color:#668877;font-size:14px;margin-bottom:24px">Enter application details — AI will auto-fill from natural language</p>
+
+    <!-- AI Input -->
+    <div class="card p-5 mb-5" style="border:1.5px solid #3A9C6A;">
+      <div class="flex items-center gap-2 mb-3">
+        <span style="font-size:18px">🤖</span>
+        <div style="font-weight:700;color:#1A3A2A">AI Quick Log</div>
+        <span id="ai-mode-label" style="font-size:11px;padding:2px 8px;border-radius:20px;background:#E8F5EE;color:#2E6B4A">Demo Mode</span>
+      </div>
+      <p style="font-size:13px;color:#668877;margin-bottom:10px">Describe the application in plain English — AI extracts all fields automatically</p>
+      <textarea class="ai-input" id="ai-input" placeholder="e.g., Treated 123 Main St kitchen for roaches with Suspend SC, 4 oz spray. Sunny, 80°F. Wore gloves and goggles."></textarea>
+      <div class="flex gap-2 mt-3">
+        <button class="btn-primary" onclick="parseAI()">⚡ Parse with AI</button>
+        <button class="btn-secondary" onclick="document.getElementById('ai-input').value=getSampleText()" style="font-size:13px">Try Example</button>
+      </div>
+      <div id="ai-result" class="mt-3 p-3 rounded-lg" style="display:none;background:#F0F7F2;font-size:13px"></div>
+    </div>
+
+    <!-- Form -->
+    <div class="card p-6">
+      <form id="log-form" onsubmit="submitLog(event)">
+        <div class="grid grid-cols-2 gap-4">
+
+          <div class="col-span-2">
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Technician</label>
+            <select class="input mt-1" id="f-tech" name="technician_id">
+              <option value="">Select technician...</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Pesticide Product Name *</label>
+            <input class="input mt-1" id="f-pesticide" name="pesticide_name" placeholder="e.g., Suspend SC" required>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">EPA Reg. No. *</label>
+            <div class="flex gap-2 mt-1">
+              <input class="input" id="f-epa" name="epa_reg_no" placeholder="e.g., 432-763" required>
+              <button type="button" onclick="lookupEPA()" class="btn-secondary" style="white-space:nowrap;font-size:12px">🔍 Lookup</button>
+            </div>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Target Pest *</label>
+            <input class="input mt-1" id="f-pest" name="target_pest" placeholder="e.g., cockroaches" required>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Date Applied *</label>
+            <input class="input mt-1" id="f-date" name="date_applied" type="date" required>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Application Site *</label>
+            <select class="input mt-1" id="f-site" name="application_site">
+              <option>Kitchen</option><option>Bathroom</option><option>Garage</option>
+              <option>Attic</option><option>Basement</option><option>Crawl Space</option>
+              <option>Exterior Perimeter</option><option>Lawn</option>
+              <option>Interior General</option><option>Commercial Kitchen</option>
+              <option>Warehouse</option><option>Office</option><option>Soil</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Site Address *</label>
+            <input class="input mt-1" id="f-address" name="site_address" placeholder="e.g., 123 Main St, Miami, FL 33131" required>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Amount Applied</label>
+            <div class="flex gap-2 mt-1">
+              <input class="input" id="f-amount" name="amount_applied" type="number" step="0.01" placeholder="4.0" style="width:70%">
+              <select class="input" id="f-unit" name="unit" style="width:30%">
+                <option>oz</option><option>ml</option><option>gallon</option><option>lbs</option><option>g</option><option>bag</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Application Method</label>
+            <select class="input mt-1" id="f-method" name="application_method">
+              <option>Sprayer</option><option>Gel Application</option><option>Bait Placement</option>
+              <option>Granular</option><option>Fogging</option><option>Injection</option>
+              <option>Dust Application</option><option>Trap Placement</option><option>Bait Station</option>
+            </select>
+          </div>
+
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Weather Conditions</label>
+            <input class="input mt-1" id="f-weather" name="weather_conditions" placeholder="e.g., Sunny, 80°F, Wind 5 mph">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">PPE Worn</label>
+            <input class="input mt-1" id="f-ppe" name="ppe_worn" placeholder="e.g., gloves, eye protection">
+          </div>
+
+          <div class="col-span-2">
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Active Ingredient</label>
+            <input class="input mt-1" id="f-ai" name="active_ingredient" placeholder="Auto-filled from EPA lookup">
+          </div>
+
+          <div class="col-span-2">
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Notes</label>
+            <textarea class="input mt-1" id="f-notes" name="notes" rows="2" placeholder="Observations, follow-up needed, etc."></textarea>
+          </div>
+
+          <!-- Compliance Preview -->
+          <div class="col-span-2" id="compliance-preview" style="display:none">
+            <div style="border:1.5px solid #3A9C6A;border-radius:10px;padding:14px;background:#F0F7F2">
+              <div style="font-weight:700;color:#1A3A2A;margin-bottom:8px">⚡ Compliance Preview</div>
+              <div id="compliance-result"></div>
+            </div>
+          </div>
+
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button type="submit" class="btn-primary">✅ Save Log &amp; Check Compliance</button>
+          <button type="button" class="btn-secondary" onclick="previewCompliance()">👁 Preview Compliance</button>
+          <button type="button" class="btn-secondary" onclick="clearForm()">Clear</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ LOGS -->
+  <div id="section-logs" class="section">
+    <div class="flex justify-between items-center mb-5">
+      <div>
+        <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700">Application Logs</h1>
+        <p style="color:#668877;font-size:14px" id="logs-count">Loading...</p>
+      </div>
+      <div class="flex gap-2">
+        <select class="input" id="filter-status" onchange="loadLogs()" style="width:auto">
+          <option value="">All Status</option>
+          <option value="compliant">Compliant</option>
+          <option value="warning">Warnings</option>
+          <option value="violation">Violations</option>
+        </select>
+        <button class="btn-primary" onclick="showSection('log-entry')">+ Add Log</button>
+      </div>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table id="logs-table">
+        <thead><tr>
+          <th>Date</th><th>Pesticide</th><th>EPA Reg.</th>
+          <th>Pest</th><th>Site</th><th>Address</th>
+          <th>Technician</th><th>Compliance</th><th>Score</th><th></th>
+        </tr></thead>
+        <tbody id="logs-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ TECHNICIANS -->
+  <div id="section-technicians" class="section">
+    <div class="flex justify-between items-center mb-5">
+      <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700">Technician Licenses</h1>
+      <button class="btn-primary" onclick="openTechModal()">+ Add Technician</button>
+    </div>
+    <div id="tech-alerts-banner" class="mb-4"></div>
+    <div class="card" style="overflow-x:auto">
+      <table id="tech-table">
+        <thead><tr><th>Name</th><th>License No.</th><th>State</th><th>Type</th><th>Expires</th><th>Days Left</th><th>Status</th><th></th></tr></thead>
+        <tbody id="tech-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ CHEMICALS -->
+  <div id="section-chemicals" class="section">
+    <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700;margin-bottom:4px">EPA Chemical Database</h1>
+    <p style="color:#668877;font-size:14px;margin-bottom:20px">Search registered pesticide products — 20+ products in demo database</p>
+    <div class="card p-5 mb-4">
+      <div class="flex gap-3">
+        <input class="input" id="chem-search" placeholder="Search by product name, EPA number, or active ingredient..." oninput="searchChemicals(this.value)">
+        <button class="btn-primary" onclick="searchChemicals(document.getElementById('chem-search').value)">Search</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-4" id="chem-results"></div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════ REPORTS -->
+  <div id="section-reports" class="section">
+    <h1 style="color:#1A3A2A;font-size:1.5rem;font-weight:700;margin-bottom:4px">Audit Reports</h1>
+    <p style="color:#668877;font-size:14px;margin-bottom:24px">Generate inspector-ready PDF reports in 30 seconds</p>
+
+    <div class="grid grid-cols-2 gap-6">
+      <div class="card p-6">
+        <h2 style="font-weight:700;color:#1A3A2A;margin-bottom:16px">📄 Generate Audit Report</h2>
+        <div class="mb-4">
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">Company Name</label>
+          <input class="input mt-1" id="r-company" value="PestPro Services LLC">
+        </div>
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Date From</label>
+            <input class="input mt-1" id="r-from" type="date">
+          </div>
+          <div>
+            <label style="font-size:13px;font-weight:600;color:#1A3A2A">Date To</label>
+            <input class="input mt-1" id="r-to" type="date">
+          </div>
+        </div>
+        <div class="mb-4">
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">Technician (optional)</label>
+          <select class="input mt-1" id="r-tech">
+            <option value="">All Technicians</option>
+          </select>
+        </div>
+        <button class="btn-primary w-full" onclick="generateReport()" style="width:100%">⚡ Generate PDF Report</button>
+        <div id="report-result" class="mt-4" style="display:none"></div>
+      </div>
+
+      <div class="card p-6">
+        <h2 style="font-weight:700;color:#1A3A2A;margin-bottom:16px">📋 What's Included</h2>
+        <ul style="font-size:14px;color:#444;line-height:2">
+          <li>✅ Full application log (all FIFRA required fields)</li>
+          <li>✅ Compliance status for each entry</li>
+          <li>✅ Violations highlighted with fix recommendations</li>
+          <li>✅ Technician license roster with expiry status</li>
+          <li>✅ Summary compliance statistics</li>
+          <li>✅ Company name and date range on every page</li>
+          <li>✅ Professional format — inspector-ready</li>
+        </ul>
+        <div style="background:#FEF3CD;border-radius:8px;padding:12px;margin-top:16px;font-size:13px;color:#8B5E0A">
+          ⚠️ <strong>FIFRA Requirement:</strong> Records must be retained for 2 years minimum (3 years in CA/NY). Keep generated PDFs in your records system.
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div>
+
+<!-- Add Technician Modal -->
+<div class="modal" id="tech-modal">
+  <div class="modal-box p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 style="font-weight:700;font-size:1.1rem;color:#1A3A2A">Add Technician</h2>
+      <button onclick="closeTechModal()" style="color:#999;font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <form id="tech-form" onsubmit="saveTechnician(event)">
+      <div class="grid grid-cols-2 gap-3">
+        <div class="col-span-2">
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">Full Name *</label>
+          <input class="input mt-1" id="t-name" required placeholder="e.g., John Smith">
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">License Number *</label>
+          <input class="input mt-1" id="t-license" required placeholder="e.g., JB123456">
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">State *</label>
+          <select class="input mt-1" id="t-state">
+            <option>FL</option><option>CA</option><option>TX</option><option>NY</option>
+            <option>GA</option><option>NC</option><option>SC</option><option>TN</option><option>AL</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">License Type</label>
+          <select class="input mt-1" id="t-type">
+            <option>Commercial Pest Control</option>
+            <option>Commercial Pest Control + RUP</option>
+            <option>General Pest</option>
+            <option>Termite / WDO</option>
+            <option>Lawn &amp; Ornamental</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">License Expiry *</label>
+          <input class="input mt-1" id="t-expiry" type="date" required>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">Email</label>
+          <input class="input mt-1" id="t-email" type="email" placeholder="tech@company.com">
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:#1A3A2A">Phone</label>
+          <input class="input mt-1" id="t-phone" placeholder="555-0100">
+        </div>
+      </div>
+      <div class="flex gap-3 mt-5">
+        <button type="submit" class="btn-primary">Save Technician</button>
+        <button type="button" class="btn-secondary" onclick="closeTechModal()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Log Detail Modal -->
+<div class="modal" id="log-modal">
+  <div class="modal-box p-6">
+    <div class="flex justify-between items-center mb-4">
+      <h2 style="font-weight:700;font-size:1.1rem;color:#1A3A2A">Log Details</h2>
+      <button onclick="closeLogModal()" style="color:#999;font-size:1.2rem;cursor:pointer">✕</button>
+    </div>
+    <div id="log-detail-content"></div>
+  </div>
+</div>
+
+<script>
+const API = '';  // Same-origin
+let techList = [];
+
+// ── Auth & Navigation ───────────────────────────────────────────────────────
+
+async function checkAuth() {
+  const res = await api('/api/auth/status');
+  if (res.logged_in) {
+    document.getElementById('login-view').style.display = 'none';
+    document.getElementById('app-view').style.display = 'flex';
+    document.getElementById('nav-company-name').textContent = res.company.name;
+    document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
+    await loadDashboard();
+    await loadTechDropdowns();
+  } else {
+    document.getElementById('app-view').style.display = 'none';
+    const companies = await api('/api/companies');
+    const sel = document.getElementById('login-company');
+    sel.innerHTML = companies.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('login-view').style.display = 'flex';
+  }
+}
+
+async function login() {
+  const cid = document.getElementById('login-company').value;
+  if (!cid) return toast('Select a company', 'warning');
+  await api('/api/auth/login', 'POST', {company_id: parseInt(cid)});
+  checkAuth();
+}
+
+async function logout() {
+  await api('/api/auth/logout', 'POST');
+  checkAuth();
+}
+
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('section-' + name).classList.add('active');
+  // Activate matching nav item
+  const navItems = document.querySelectorAll('.nav-item');
+  navItems.forEach(n => {
+    const txt = n.textContent.toLowerCase();
+    const key = name.replace('-', ' ');
+    if (txt.includes(key.split(' ')[0].replace(/[^a-z]/g, ''))) {
+      n.classList.add('active');
+    }
+  });
+  if (name === 'dashboard') loadDashboard();
+  if (name === 'logs') loadLogs();
+  if (name === 'technicians') loadTechnicians();
+  if (name === 'chemicals') loadChemicals('');
+  if (name === 'reports') { setupReportDates(); loadTechDropdowns(); }
+  if (name === 'log-entry') loadTechDropdowns();
+}
+
+// ── API Helper ────────────────────────────────────────────────────────────
+async function api(path, method = 'GET', body = null) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.style.background = type === 'success' ? '#1A3A2A' : type === 'error' ? '#C0392B' : '#F4A300';
+  el.style.color = 'white';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+function badge(status) {
+  const labels = {compliant:'✅ Compliant', warning:'⚠️ Warning', violation:'🚨 Violation', pending:'⏳ Pending'};
+  return `<span class="badge-${status}">${labels[status] || status}</span>`;
+}
+
+function fmtDate(d) {
+  if (!d) return '—';
+  try { return new Date(d + 'T00:00:00').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'}); }
+  catch { return d; }
+}
+
+// ── Dashboard ──────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const data = await api('/api/dashboard');
+
+  document.getElementById('stat-total').textContent = data.stats.total_logs;
+  document.getElementById('stat-compliant').textContent = data.stats.compliant;
+  document.getElementById('stat-warnings').textContent = data.stats.warnings;
+  document.getElementById('stat-violations').textContent = data.stats.violations;
+  document.getElementById('comp-rate-pct').textContent = data.stats.compliance_rate + '%';
+  document.getElementById('stat-late').textContent = data.stats.late_entries;
+  document.getElementById('stat-techs').textContent = data.stats.active_technicians;
+  document.getElementById('stat-this-month').textContent = data.stats.logs_this_month;
+  document.getElementById('comp-bar').style.width = data.stats.compliance_rate + '%';
+
+  const aiMode = document.getElementById('ai-mode-badge');
+  aiMode.textContent = data.ai_mode === 'openai' ? '🤖 GPT-4o Active' : '🔧 Demo Mode';
+  document.getElementById('ai-mode-label').textContent = data.ai_mode === 'openai' ? 'GPT-4o' : 'Demo Mode';
+
+  // Alerts
+  const alertList = document.getElementById('alert-list');
+  if (data.license_alerts.length === 0) {
+    alertList.innerHTML = '<div style="color:#3A9C6A;font-size:13px">✅ All licenses current</div>';
+  } else {
+    alertList.innerHTML = data.license_alerts.map(a =>
+      `<div style="margin-bottom:6px;font-size:12px">${a.message}</div>`
+    ).join('');
+  }
+
+  // Recent logs
+  const tbody = document.getElementById('recent-tbody');
+  tbody.innerHTML = data.recent_logs.map(l => `
+    <tr onclick="viewLog(${l.id})" style="cursor:pointer">
+      <td>${fmtDate(l.date_applied)}</td>
+      <td style="font-weight:600">${l.pesticide_name}</td>
+      <td>${l.application_site}</td>
+      <td>${l.technician_name || '—'}</td>
+      <td>${badge(l.compliance_status)}</td>
+    </tr>
+  `).join('');
+}
+
+// ── Logs ───────────────────────────────────────────────────────────────────
+async function loadLogs() {
+  const status = document.getElementById('filter-status')?.value || '';
+  const url = '/api/logs?' + (status ? `status=${status}&` : '') + 'limit=50';
+  const data = await api(url);
+  document.getElementById('logs-count').textContent = `${data.total} total records`;
+  const tbody = document.getElementById('logs-tbody');
+  tbody.innerHTML = data.logs.map(l => `
+    <tr>
+      <td>${fmtDate(l.date_applied)}</td>
+      <td style="font-weight:600">${l.pesticide_name}</td>
+      <td style="font-family:monospace;font-size:12px">${l.epa_reg_no}</td>
+      <td>${l.target_pest}</td>
+      <td>${l.application_site}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${l.site_address}</td>
+      <td>${l.technician_name || '—'}</td>
+      <td>${badge(l.compliance_status)}</td>
+      <td><span style="font-weight:700;color:${l.compliance_score >= 90 ? '#3A9C6A' : l.compliance_score >= 70 ? '#F4A300' : '#C0392B'}">${l.compliance_score}</span>/100</td>
+      <td><button onclick="viewLog(${l.id})" style="font-size:12px;color:#3A9C6A;cursor:pointer;background:none;border:none">View →</button></td>
+    </tr>
+  `).join('');
+}
+
+async function viewLog(id) {
+  const log = await api('/api/logs/' + id);
+  const issues = Array.isArray(log.compliance_issues) ? log.compliance_issues :
+    (typeof log.compliance_issues === 'string' ? JSON.parse(log.compliance_issues || '[]') : []);
+
+  document.getElementById('log-detail-content').innerHTML = `
+    <div class="grid grid-cols-2 gap-3 mb-4" style="font-size:13px">
+      <div><strong>Date Applied:</strong> ${fmtDate(log.date_applied)}</div>
+      <div><strong>Technician:</strong> ${log.technician_name || '—'}</div>
+      <div><strong>Pesticide:</strong> ${log.pesticide_name}</div>
+      <div><strong>EPA Reg. No.:</strong> <span style="font-family:monospace">${log.epa_reg_no}</span></div>
+      <div><strong>Active Ingredient:</strong> ${log.active_ingredient || '—'}</div>
+      <div><strong>Target Pest:</strong> ${log.target_pest}</div>
+      <div><strong>Application Site:</strong> ${log.application_site}</div>
+      <div><strong>Method:</strong> ${log.application_method || '—'}</div>
+      <div class="col-span-2"><strong>Address:</strong> ${log.site_address}</div>
+      <div><strong>Amount:</strong> ${log.amount_applied || '—'} ${log.unit || ''}</div>
+      <div><strong>Weather:</strong> ${log.weather_conditions || '—'}</div>
+      <div><strong>PPE:</strong> ${log.ppe_worn || '—'}</div>
+      <div><strong>Logged:</strong> ${fmtDate(log.date_logged)}</div>
+      ${log.notes ? `<div class="col-span-2"><strong>Notes:</strong> ${log.notes}</div>` : ''}
+    </div>
+    <div style="border-top:1px solid #E8EEE8;padding-top:14px">
+      <div class="flex items-center gap-3 mb-3">
+        <div style="font-weight:700;color:#1A3A2A">Compliance Status</div>
+        ${badge(log.compliance_status)}
+        <span style="font-weight:700;color:${log.compliance_score >= 90 ? '#3A9C6A' : '#F4A300'}">${log.compliance_score}/100</span>
+      </div>
+      ${issues.length > 0 ? issues.map(i => `
+        <div style="border-left:3px solid ${i.severity === 'violation' ? '#C0392B' : '#F4A300'};padding:8px 12px;margin-bottom:8px;background:${i.severity === 'violation' ? '#FDECEA' : '#FEF3CD'};border-radius:0 6px 6px 0;font-size:13px">
+          <div style="font-weight:600;color:${i.severity === 'violation' ? '#C0392B' : '#9B6E0A'}">${i.message}</div>
+          <div style="color:#666;margin-top:2px">💡 ${i.fix || ''}</div>
+          <div style="color:#999;font-size:11px;margin-top:2px">Rule: ${i.rule || ''}</div>
+        </div>
+      `).join('') : '<div style="color:#3A9C6A;font-size:13px">✅ No compliance issues found.</div>'}
+    </div>
+  `;
+  document.getElementById('log-modal').classList.add('open');
+}
+
+function closeLogModal() { document.getElementById('log-modal').classList.remove('open'); }
+
+// ── AI Parse ───────────────────────────────────────────────────────────────
+function getSampleText() {
+  const samples = [
+    "Treated 123 Main St kitchen for roaches with Suspend SC 4 oz spray. Sunny 80°F. Wore gloves and goggles. Marcus Williams applied.",
+    "Applied Talstar Pro 6 oz to perimeter of 456 Oak Ave for ant control. Partly cloudy, 75°F, wind 8 mph. Gloves and eye protection worn.",
+    "Used Advion Ant Bait Gel at 789 Pine St office break room. Gel bait placement for ant activity. No PPE required per label.",
+    "Termidor SC 16oz injection treatment for termites at 321 Elm Dr. Sunny 85°F wind 5 mph. Gloves respirator goggles.",
+  ];
+  return samples[Math.floor(Math.random() * samples.length)];
+}
+
+async function parseAI() {
+  const text = document.getElementById('ai-input').value.trim();
+  if (!text) { toast('Enter a description first', 'warning'); return; }
+  const btn = event.target;
+  btn.textContent = '⏳ Parsing...'; btn.disabled = true;
+
+  const result = await api('/api/logs/parse', 'POST', { text });
+  btn.textContent = '⚡ Parse with AI'; btn.disabled = false;
+
+  const parsed = result.parsed;
+  const preview = result.compliance_preview;
+
+  // Fill form
+  if (parsed.pesticide_name) document.getElementById('f-pesticide').value = parsed.pesticide_name;
+  if (parsed.epa_reg_no) document.getElementById('f-epa').value = parsed.epa_reg_no;
+  if (parsed.target_pest) document.getElementById('f-pest').value = parsed.target_pest;
+  if (parsed.date_applied) document.getElementById('f-date').value = parsed.date_applied;
+  if (parsed.application_site) {
+    const sel = document.getElementById('f-site');
+    for (let opt of sel.options) {
+      if (opt.value === parsed.application_site || opt.text === parsed.application_site) {
+        sel.value = opt.value; break;
+      }
+    }
+  }
+  if (parsed.site_address) document.getElementById('f-address').value = parsed.site_address;
+  if (parsed.amount_applied) document.getElementById('f-amount').value = parsed.amount_applied;
+  if (parsed.unit) document.getElementById('f-unit').value = parsed.unit;
+  if (parsed.application_method) {
+    const sel = document.getElementById('f-method');
+    for (let opt of sel.options) {
+      if (opt.value === parsed.application_method || opt.text === parsed.application_method) {
+        sel.value = opt.text; break;
+      }
+    }
+  }
+  if (parsed.weather_conditions) document.getElementById('f-weather').value = parsed.weather_conditions;
+  if (parsed.ppe_worn) document.getElementById('f-ppe').value = parsed.ppe_worn;
+  if (parsed.active_ingredient) document.getElementById('f-ai').value = parsed.active_ingredient;
+
+  // Show result
+  const res = document.getElementById('ai-result');
+  res.style.display = 'block';
+  const modeLabel = result.ai_mode === 'openai' ? '🤖 GPT-4o' : '🔧 Rule-based';
+  const confColor = result.confidence === 'high' ? '#3A9C6A' : result.confidence === 'medium' ? '#F4A300' : '#C0392B';
+  res.innerHTML = `
+    <div class="flex gap-2 items-center mb-2">
+      <span style="font-weight:700;color:#1A3A2A">${modeLabel}</span>
+      <span style="font-size:11px;padding:2px 8px;border-radius:20px;background:${confColor}20;color:${confColor}">${result.confidence} confidence</span>
+      <span style="font-size:11px;color:#999">→ Form filled ✓</span>
+    </div>
+    <div style="color:${preview.status === 'compliant' ? '#3A9C6A' : preview.status === 'warning' ? '#F4A300' : '#C0392B'};font-size:13px">${preview.summary}</div>
+  `;
+  toast('Form filled from AI parsing!', 'success');
+}
+
+async function previewCompliance() {
+  const data = collectFormData();
+  if (!data.pesticide_name || !data.epa_reg_no) {
+    toast('Fill in pesticide name and EPA number first', 'warning'); return;
+  }
+  const result = await api('/api/compliance/check', 'POST', data);
+  showComplianceResult(result);
+}
+
+function showComplianceResult(result) {
+  const el = document.getElementById('compliance-preview');
+  const res = document.getElementById('compliance-result');
+  el.style.display = 'block';
+  const col = result.status === 'compliant' ? '#3A9C6A' : result.status === 'warning' ? '#F4A300' : '#C0392B';
+  res.innerHTML = `
+    <div style="font-weight:700;color:${col};margin-bottom:8px">${result.summary}</div>
+    ${(result.issues || []).map(i => `
+      <div style="font-size:12px;border-left:2px solid ${i.severity==='violation'?'#C0392B':'#F4A300'};padding:4px 8px;margin:4px 0;color:#444">
+        ${i.message}
+      </div>
+    `).join('')}
+  `;
+}
+
+function collectFormData() {
+  const techSel = document.getElementById('f-tech');
+  return {
+    technician_id: techSel.value || null,
+    technician_name: techSel.options[techSel.selectedIndex]?.text?.replace('Select technician...','') || '',
+    pesticide_name: document.getElementById('f-pesticide').value,
+    epa_reg_no: document.getElementById('f-epa').value,
+    active_ingredient: document.getElementById('f-ai').value,
+    target_pest: document.getElementById('f-pest').value,
+    date_applied: document.getElementById('f-date').value,
+    application_site: document.getElementById('f-site').value,
+    site_address: document.getElementById('f-address').value,
+    amount_applied: parseFloat(document.getElementById('f-amount').value) || null,
+    unit: document.getElementById('f-unit').value,
+    application_method: document.getElementById('f-method').value,
+    weather_conditions: document.getElementById('f-weather').value,
+    ppe_worn: document.getElementById('f-ppe').value,
+    notes: document.getElementById('f-notes').value,
+    state: 'FL',
+  };
+}
+
+async function submitLog(e) {
+  e.preventDefault();
+  const data = collectFormData();
+  const result = await api('/api/logs', 'POST', data);
+  if (result.error) { toast(result.error, 'error'); return; }
+  toast(`✅ Log saved! Compliance: ${result.compliance_status}`, 'success');
+  showComplianceResult(result.compliance);
+  showSection('logs');
+}
+
+function clearForm() {
+  document.getElementById('log-form').reset();
+  document.getElementById('compliance-preview').style.display = 'none';
+  document.getElementById('ai-result').style.display = 'none';
+  document.getElementById('ai-input').value = '';
+}
+
+async function lookupEPA() {
+  const reg = document.getElementById('f-epa').value.trim();
+  if (!reg) { toast('Enter an EPA Reg. No. first', 'warning'); return; }
+  const result = await api('/api/chemicals/' + encodeURIComponent(reg));
+  if (result.error) { toast('Product not found in EPA database', 'warning'); return; }
+  document.getElementById('f-pesticide').value = result.product_name;
+  document.getElementById('f-ai').value = result.active_ingredient;
+  toast(`Found: ${result.product_name}`, 'success');
+}
+
+// ── Technicians ────────────────────────────────────────────────────────────
+async function loadTechnicians() {
+  techList = await api('/api/technicians');
+  const tbody = document.getElementById('tech-tbody');
+  const today = new Date();
+  tbody.innerHTML = techList.map(t => {
+    const exp = new Date(t.license_expiry);
+    const days = Math.ceil((exp - today) / 86400000);
+    const st = days < 0 ? 'violation' : days <= 30 ? 'violation' : days <= 90 ? 'warning' : 'compliant';
+    const stLabel = days < 0 ? '🚨 EXPIRED' : days <= 30 ? '🔴 Critical' : days <= 90 ? '🟡 Warning' : '✅ Valid';
+    return `<tr>
+      <td style="font-weight:600">${t.name}</td>
+      <td style="font-family:monospace">${t.license_no}</td>
+      <td>${t.license_state}</td>
+      <td>${t.license_type}</td>
+      <td>${fmtDate(t.license_expiry)}</td>
+      <td style="font-weight:700;color:${days < 0 ? '#C0392B' : days <= 30 ? '#C0392B' : days <= 90 ? '#F4A300' : '#3A9C6A'}">${days < 0 ? Math.abs(days) + 'd overdue' : days + ' days'}</td>
+      <td>${badge(st)}</td>
+      <td><button onclick="deactivateTech(${t.id})" class="btn-danger" style="font-size:11px">Remove</button></td>
+    </tr>`;
+  }).join('');
+
+  // Alerts banner
+  const alerts = techList.filter(t => {
+    const days = Math.ceil((new Date(t.license_expiry) - today) / 86400000);
+    return days <= 90;
+  });
+  const banner = document.getElementById('tech-alerts-banner');
+  if (alerts.length) {
+    banner.innerHTML = `<div style="background:#FEF3CD;border-radius:8px;padding:12px;font-size:13px;color:#8B5E0A">
+      ⚠️ <strong>${alerts.length} technician(s)</strong> need license attention. Renew before expiry to maintain compliance.
+    </div>`;
+  }
+}
+
+function openTechModal() { document.getElementById('tech-modal').classList.add('open'); }
+function closeTechModal() { document.getElementById('tech-modal').classList.remove('open'); }
+
+async function saveTechnician(e) {
+  e.preventDefault();
+  const data = {
+    name: document.getElementById('t-name').value,
+    license_no: document.getElementById('t-license').value,
+    license_state: document.getElementById('t-state').value,
+    license_type: document.getElementById('t-type').value,
+    license_expiry: document.getElementById('t-expiry').value,
+    email: document.getElementById('t-email').value,
+    phone: document.getElementById('t-phone').value,
+  };
+  const result = await api('/api/technicians', 'POST', data);
+  if (result.error) { toast(result.error, 'error'); return; }
+  toast('Technician added!', 'success');
+  closeTechModal();
+  loadTechnicians();
+}
+
+async function deactivateTech(id) {
+  if (!confirm('Remove this technician from active roster?')) return;
+  await api('/api/technicians/' + id, 'DELETE');
+  toast('Technician removed', 'warning');
+  loadTechnicians();
+}
+
+// ── Chemicals ──────────────────────────────────────────────────────────────
+async function loadChemicals(q) { searchChemicals(q); }
+
+async function searchChemicals(q) {
+  const results = await api('/api/chemicals?q=' + encodeURIComponent(q));
+  const el = document.getElementById('chem-results');
+  const signalColor = {CAUTION:'#3A9C6A', WARNING:'#F4A300', DANGER:'#C0392B', NONE:'#8A9499'};
+  el.innerHTML = results.map(p => `
+    <div class="card p-4">
+      <div class="flex justify-between items-start mb-2">
+        <div style="font-weight:700;color:#1A3A2A;font-size:14px">${p.product_name}</div>
+        <span style="background:${(signalColor[p.signal_word] || '#999')}20;color:${signalColor[p.signal_word] || '#999'};font-size:11px;padding:2px 7px;border-radius:20px;font-weight:700">${p.signal_word}</span>
+      </div>
+      <div style="font-family:monospace;font-size:12px;color:#668877;margin-bottom:6px">EPA ${p.epa_reg_no}</div>
+      <div style="font-size:12px;color:#444;margin-bottom:6px">${p.active_ingredient}</div>
+      <div style="font-size:12px;color:#668877">🎯 ${(p.target_pests || []).slice(0,4).join(', ')}${(p.target_pests || []).length > 4 ? '...' : ''}</div>
+      <div style="font-size:11px;margin-top:6px;color:#888">PPE: ${p.ppe_required}</div>
+      ${p.restricted_use ? '<div style="font-size:11px;color:#C0392B;font-weight:700;margin-top:4px">⚠️ RESTRICTED USE — RUP required</div>' : ''}
+    </div>
+  `).join('') || '<div style="color:#668877;grid-column:span 2;text-align:center;padding:30px">No products found</div>';
+}
+
+// ── Reports ────────────────────────────────────────────────────────────────
+function setupReportDates() {
+  const to = new Date();
+  const from = new Date();
+  from.setDate(1);  // First of month
+  document.getElementById('r-to').value = to.toISOString().split('T')[0];
+  document.getElementById('r-from').value = from.toISOString().split('T')[0];
+}
+
+async function loadTechDropdowns() {
+  if (techList.length === 0) techList = await api('/api/technicians');
+  const opts = techList.map(t => `<option value="${t.id}">${t.name}</option>`).join('');
+  ['r-tech', 'f-tech'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = (id === 'f-tech' ? '<option value="">Select technician...</option>' : '<option value="">All Technicians</option>') + opts;
+  });
+}
+
+async function generateReport() {
+  const from = document.getElementById('r-from').value;
+  const to = document.getElementById('r-to').value;
+  const company = document.getElementById('r-company').value;
+  const tech = document.getElementById('r-tech').value;
+
+  const btn = event.target;
+  btn.textContent = '⏳ Generating...'; btn.disabled = true;
+
+  const data = { date_from: from, date_to: to, company_name: company };
+  if (tech) data.technician_id = parseInt(tech);
+
+  const result = await api('/api/reports', 'POST', data);
+  btn.textContent = '⚡ Generate PDF Report'; btn.disabled = false;
+
+  const el = document.getElementById('report-result');
+  el.style.display = 'block';
+
+  if (result.error) {
+    el.innerHTML = `<div style="color:#C0392B;font-size:13px">❌ ${result.error}</div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div style="background:#E8F5EE;border-radius:10px;padding:14px">
+      <div style="font-weight:700;color:#1A3A2A;margin-bottom:8px">✅ Report Generated!</div>
+      <div style="font-size:13px;color:#444;margin-bottom:10px">
+        ${result.stats.total} logs · ${result.stats.compliant} compliant · ${result.stats.violations} violations · ${result.stats.compliance_rate}% rate
+      </div>
+      <a href="${result.download_url}" target="_blank" class="btn-primary" style="text-decoration:none;display:inline-block">
+        📄 Download PDF Report
+      </a>
+    </div>
+  `;
+  toast('Audit report ready!', 'success');
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+(async function init() {
+  await checkAuth();
+})();
+</script>
+</body>
+</html>
