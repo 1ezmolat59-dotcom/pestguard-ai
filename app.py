@@ -615,7 +615,7 @@ def make_app():
 
         # Static report downloads
         (r"/reports/(.*)", tornado.web.StaticFileHandler, {"path": REPORTS_DIR}),
-    ], debug=True, cookie_secret=os.environ.get("COOKIE_SECRET", "super-secret-key-change-me"))
+    ], debug=False, cookie_secret=os.environ.get("COOKIE_SECRET", "super-secret-key-change-me"))
 
 
 if __name__ == "__main__":
