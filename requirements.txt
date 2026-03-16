@@ -2,7 +2,7 @@
 # Install with: pip install -r requirements.txt
 
 # ── Core Web Framework ──────────────────────────────────────────────────────
-tornado==6.1          # Async web server (Python 3.8+)
+tornado>=6.4          # Async web server (Python 3.10+ compatible)
 
 # ── PDF Report Generation ───────────────────────────────────────────────────
 reportlab>=3.6.0      # Professional PDF generation
